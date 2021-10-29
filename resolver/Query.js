@@ -13,6 +13,13 @@ const Query = {
             })
 
         }
+    },
+    users: async (parent, args, {prisma}, info) => {
+        try {
+            return prisma.users()
+        } catch (error) {
+            throw error
+        }
     }
 }
 module.exports = Query

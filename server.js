@@ -11,6 +11,8 @@ const typeDefs = require("./schema.js")
 // const schema = loadSchemaSync(join(__dirname, './schema.graphql'), {
 //     loaders: [new GraphQLFileLoader()]
 // })
+// prisma インスタンスの取得
+const {prisma} = require('./prisma/generated/prisma-client')
 
 // PubSubのインスタンスを作成、サブスクリプションを利用可能に
 const pubSub = new PubSub()
@@ -23,6 +25,7 @@ const server = new ApolloServer({
         Subscription
     },
     context: {
+        prisma,
         db,
         pubSub
     }

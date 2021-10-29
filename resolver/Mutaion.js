@@ -1,3 +1,5 @@
+const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
 const Mutation = {
     createPost(parent, args, {db, pubSub}, info) {
         const postNumTotal = String(db.posts.length + 1)
@@ -37,7 +39,7 @@ const Mutation = {
         })
         return post
     },
-    deletePost(parent, args, {db,pubSub}, info) {
+    deletePost(parent, args, {db, pubSub}, info) {
         const post = db.posts.find((post) => post.id === args.id)
         const postIndex = db.posts.findIndex((post) => post.id === args.id)
 
@@ -47,7 +49,7 @@ const Mutation = {
         // 模擬データベース更新
         db.posts.splice(postIndex, 1)
         // サブスクリプション着火
-        pubSub.publish('post',{
+        pubSub.publish('post', {
             post: {
                 mutation: 'DELETED',
                 data: post
@@ -55,5 +57,37 @@ const Mutation = {
         })
         return post
     },
+    // ユーザー登録
+    async createUser(parent, args, {prisma}, info) {
+        const {data: {email, name, password}} = args;
+        const user = await prisma.createUser({
+            email, name,
+            // bcryptでパスワードをハッシュ化
+            password: bcrypt.hashSync(password, 10)
+        })
+        return {
+            user,
+            // サーバーがJWTトークンを発行
+            token: jwt.sign(user.id, 'supersecret')
+        }
+    },
+    // login
+    async login(parent, args, {prisma}, info) {
+        const {data: {email, password}} = args
+        // メールアドレスと照合
+        const [user] = await prisma.users({
+            where: {
+                email
+            }
+        })
+        if (!user) throw new Error('Unable to Login')
+        // パスワードと照合
+        const isMatch = bcrypt.compareSync(password, user.password)
+        if (!isMatch) throw new Error("Unable to Login")
+        return {
+            user,
+            token: jwt.sign(user.id,'supersecret')
+        }
+    }
 }
 module.exports = Mutation
